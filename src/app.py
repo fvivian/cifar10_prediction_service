@@ -1,10 +1,11 @@
 
-
+from flask import Flask
 from tensorflow.keras.preprocessing.image import load_img
 from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.models import load_model
+app = Flask(__name__)
 
-model = load_model('test_model.h5')
+model = load_model('../resources/test_model.h5')
 
 # load and prepare the image
 def load_image(filename):
@@ -19,6 +20,9 @@ def load_image(filename):
     img = img / 255.0
     return img
 
-img = load_image('sample_image.png')
-result = model.predict_classes(img)
-print(result)
+@app.route('/')
+def hello_world():
+    img = load_image('../resources/sample_image.png')
+    result = model.predict_classes(img)
+
+    return f'{result}'
