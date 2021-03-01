@@ -1,14 +1,20 @@
 
-from flask import Flask
 from tensorflow.keras.preprocessing.image import load_img
 from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.models import load_model
+import os
+from flask import Flask, flash, request, redirect, url_for
+
+UPLOAD_FOLDER = './'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 model = load_model('../resources/test_model.h5')
 
 # load and prepare the image
-def load_image(filename):
+def prepare_image(filename):
     # load the image
     img = load_img(filename, target_size=(32, 32))
     # convert to array
@@ -20,9 +26,48 @@ def load_image(filename):
     img = img / 255.0
     return img
 
-@app.route('/')
-def hello_world():
-    img = load_image('../resources/sample_image.png')
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        # if user does not select file, browser also
+        # submit an empty part without filename
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
+            #return redirect(url_for('upload_file', filename=file.filename))
+            return redirect(url_for('predict'))
+    return '''
+    <!doctype html>
+    <title>Upload new File</title>
+    <h1>Upload new File</h1>
+    <form method=post enctype=multipart/form-data>
+      <input type=file name=file>
+      <input type=submit value=Upload>
+    </form>
+    '''
+
+@app.route('/predict/')
+def predict():
+    img = prepare_image('./sample_image.png')
+    os.remove('./sample_image.png')
     result = model.predict_classes(img)
 
-    return f'{result}'
+    return f'''
+    <!doctype html>
+    <title>Prediction</title>
+    <h1>Predicted class:</h1>
+    <div>{result}</div>
+    '''
+
+
