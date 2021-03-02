@@ -4,14 +4,15 @@ from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.models import load_model
 import os
 from flask import Flask, flash, request, redirect, url_for
+import numpy as np
 
-UPLOAD_FOLDER = './'
+UPLOAD_FOLDER = '/tmp/upload/'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-model = load_model('../resources/test_model.h5')
+model = load_model('../resources/baseline_lr_exp_decay.h5')
 
 # load and prepare the image
 def prepare_image(filename):
@@ -45,8 +46,7 @@ def upload_file():
             return redirect(request.url)
         if file and allowed_file(file.filename):
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
-            #return redirect(url_for('upload_file', filename=file.filename))
-            return redirect(url_for('predict'))
+            return redirect(url_for('predict', filename=file.filename))
     return '''
     <!doctype html>
     <title>Upload new File</title>
@@ -57,11 +57,14 @@ def upload_file():
     </form>
     '''
 
-@app.route('/predict/')
-def predict():
-    img = prepare_image('./sample_image.png')
-    os.remove('./sample_image.png')
-    result = model.predict_classes(img)
+@app.route('/predict/<filename>')
+def predict(filename):
+    img = prepare_image(UPLOAD_FOLDER + filename)
+    os.remove(UPLOAD_FOLDER + filename)
+
+    classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+
+    result = classes[np.argmax(model.predict(img), axis=-1)[0]]
 
     return f'''
     <!doctype html>
@@ -70,4 +73,6 @@ def predict():
     <div>{result}</div>
     '''
 
+if __name__ == '__main__':
+    app.run(host='0.0.0.0')
 

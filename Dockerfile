@@ -4,7 +4,9 @@ WORKDIR /home/src/
 RUN mkdir /tmp/upload
 RUN mkdir /home/resources
 
-COPY requirements.txt /home/requirements.txt
+EXPOSE 5000
+
+COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 
 COPY . /home/src

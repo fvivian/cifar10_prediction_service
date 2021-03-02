@@ -6,10 +6,12 @@ from tensorflow.keras.layers import Conv2D
 from tensorflow.keras.layers import MaxPooling2D
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import Flatten
-from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.optimizers import SGD, Adam
+from tensorflow.keras.optimizers.schedules import ExponentialDecay
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.layers import Dropout
 from tensorflow.keras.layers import BatchNormalization
+from matplotlib import pyplot
 
 # load train and test dataset
 def load_dataset():
@@ -37,7 +39,22 @@ def prep_pixels(train, val, test):
     # return normalized images
     return train_norm, val_norm, test_norm
 
+def summarize_diagnostics(history, filename, accuracy):
+    # plot loss
+    pyplot.subplot(211)
+    pyplot.title('Cross Entropy Loss')
+    pyplot.plot(history.history['loss'], color='blue', label='train')
+    pyplot.plot(history.history['val_loss'], color='orange', label='test')
+    # plot accuracy
+    pyplot.subplot(212)
+    pyplot.title('Classification Accuracy')
+    pyplot.plot(history.history['accuracy'], color='blue', label='train')
+    pyplot.plot(history.history['val_accuracy'], color='orange', label='test')
+    pyplot.xlabel(f'test accuracy = {accuracy * 100:.2f} %')
+    # save plot to file
 
+    pyplot.savefig(f'resources\\{filename}_plot.png')
+    pyplot.close()
 
 def define_model():
     model = Sequential()
@@ -66,12 +83,16 @@ def define_model():
     model.add(Dropout(0.5))
     model.add(Dense(10, activation='softmax'))
     # compile model
-    opt = SGD(lr=0.001, momentum=0.9)
+    lr_schedule = ExponentialDecay(initial_learning_rate=0.01,
+                                   decay_steps=10000,
+                                   decay_rate=0.9)
+    opt = SGD(learning_rate=lr_schedule)
     model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
     return model
 
 
 def run_test_harness():
+    modelname = input('please specify model name: ')
     # load dataset
     trainX, trainY, valX, valY, testX, testY = load_dataset()
     # prepare pixel data
@@ -84,12 +105,18 @@ def run_test_harness():
     it_train = datagen.flow(trainX, trainY, batch_size=64)
     # fit model
     steps = int(trainX.shape[0] / 64)
-    history = model.fit_generator(it_train, steps_per_epoch=steps, epochs=300, validation_data=(valX, valY), verbose=1)
+
+    history = model.fit_generator(it_train,
+                                  steps_per_epoch=steps,
+                                  epochs=300,
+                                  validation_data=(valX, valY),
+                                  verbose=1)
     # evaluate model
     _, acc = model.evaluate(testX, testY, verbose=0)
     print('> %.3f' % (acc * 100.0))
 
-    model.save('baseline_model.h5')
+    model.save(f'resources\\{modelname}.h5')
+    summarize_diagnostics(history, modelname, acc)
 
 
 if __name__ == '__main__':

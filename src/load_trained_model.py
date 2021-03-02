@@ -20,5 +20,5 @@ def load_image(filename):
     return img
 
 img = load_image('resources/sample_image.png')
-result = model.predict_classes(img)
+result = (model.predict(img) > 0.5).astype("int32")
 print(result)
