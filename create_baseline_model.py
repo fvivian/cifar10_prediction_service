@@ -10,6 +10,7 @@ from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.layers import Dropout
 from tensorflow.keras.layers import BatchNormalization
+from matplotlib import pyplot
 
 # load train and test dataset
 def load_dataset():
@@ -71,7 +72,25 @@ def define_model():
     return model
 
 
+def summarize_diagnostics(history, filename, accuracy):
+    # plot loss
+    pyplot.subplot(211)
+    pyplot.title('Cross Entropy Loss')
+    pyplot.plot(history.history['loss'], color='blue', label='train')
+    pyplot.plot(history.history['val_loss'], color='orange', label='test')
+    # plot accuracy
+    pyplot.subplot(212)
+    pyplot.title('Classification Accuracy')
+    pyplot.plot(history.history['accuracy'], color='blue', label='train')
+    pyplot.plot(history.history['val_accuracy'], color='orange', label='test')
+    pyplot.xlabel(f'test accuracy = {accuracy * 100:.2f} %')
+    # save plot to file
+
+    pyplot.savefig(f'resources\\{filename}_plot.png')
+    pyplot.close()
+
 def run_test_harness():
+    modelname = input('please specify model name: ')
     # load dataset
     trainX, trainY, valX, valY, testX, testY = load_dataset()
     # prepare pixel data
@@ -89,7 +108,8 @@ def run_test_harness():
     _, acc = model.evaluate(testX, testY, verbose=0)
     print('> %.3f' % (acc * 100.0))
 
-    model.save('baseline_model.h5')
+    model.save(f'resources\\{modelname}.h5')
+    summarize_diagnostics(history, modelname, acc)
 
 
 if __name__ == '__main__':
