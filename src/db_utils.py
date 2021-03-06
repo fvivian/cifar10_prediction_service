@@ -7,7 +7,7 @@ from tensorflow.keras.models import load_model
 import base64
 import numpy as np
 
-model = load_model('../resources/baseline_lr_exp_decay.h5')
+model = load_model('../resources/baseline_adam_optimizer.h5')
 
 def get_sql_con():
     user = os.environ['POSTGRES_USER']
