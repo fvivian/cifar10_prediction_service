@@ -1,31 +1,14 @@
 
-from tensorflow.keras.preprocessing.image import load_img
-from tensorflow.keras.preprocessing.image import img_to_array
-from tensorflow.keras.models import load_model
+
 import os
 from flask import Flask, flash, request, redirect, url_for
-import numpy as np
+from db_utils import write_data_to_table, predict_class
 
 UPLOAD_FOLDER = '/tmp/upload/'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-model = load_model('../resources/baseline_lr_exp_decay.h5')
-
-# load and prepare the image
-def prepare_image(filename):
-    # load the image
-    img = load_img(filename, target_size=(32, 32))
-    # convert to array
-    img = img_to_array(img)
-    # reshape into a single sample with 3 channels
-    img = img.reshape(1, 32, 32, 3)
-    # prepare pixel data
-    img = img.astype('float32')
-    img = img / 255.0
-    return img
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -45,7 +28,9 @@ def upload_file():
             flash('No selected file')
             return redirect(request.url)
         if file and allowed_file(file.filename):
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
+            filename = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            file.save(filename)
+            write_data_to_table(filename)
             return redirect(url_for('predict', filename=file.filename))
     return '''
     <!doctype html>
@@ -59,17 +44,13 @@ def upload_file():
 
 @app.route('/predict/<filename>')
 def predict(filename):
-    img = prepare_image(UPLOAD_FOLDER + filename)
-    os.remove(UPLOAD_FOLDER + filename)
 
-    classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
-
-    result = classes[np.argmax(model.predict(img), axis=-1)[0]]
+    result, _ = predict_class(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
     return f'''
     <!doctype html>
     <title>Prediction</title>
-    <h1>Predicted class:</h1>
+    <h1>Predicted class: </h1>
     <div>{result}</div>
     '''
 
