@@ -1,6 +1,6 @@
 # CIFAR10 Image Class Prediction Service
 
-Use the following commands to build and run the services (prediction service and db service)
+First, make sure to edit the secrets in database_template.env and then rename it to to database.env. Then, use the following commands to build and run the services (prediction service and db service)
 
 
 ```
